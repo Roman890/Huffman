@@ -1,50 +1,16 @@
+#ifndef HUFMAN_H
+#define HUFMAN_H
 #include <deque>
 #include <iostream>
 #include <fstream>
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include <iomanip>
+#include "pcode.h"
+#include "node.h"
 
-
-// для переворачивания uint64
-#define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
 using namespace std;
 
-class HUFF;
-class Bincode {
-public:
-    uint64_t bin= 0; // для последовательности 01
-    unsigned char len = 0; // длина вектора
-    Bincode()
-    {
-        bin = 0;
-        len = 0;
-    }
-};
-
-class Node {
-    unsigned char symvol; // символ
-    uint32_t num; // его колличество
-    Node *left, *right; // указатели на правого и левого сына
-public:
-    Node(unsigned char s, uint32_t n) {
-        left = NULL;
-        right = NULL;
-        symvol = s;
-        num = n;
-    }
-    Node(Node *l, Node *r) {
-        num = l->num + r->num;
-        left = l;
-        right = r;
-        symvol = 0;
-    }
-    uint32_t get()
-    {
-        return num;
-    }
-    friend HUFF;
-};
 
 class HUFF {
 private:
@@ -67,3 +33,5 @@ public:
     int BinSequence(Node *r, Bincode b);
     void unpack(ifstream & fin, ofstream & fout);
 };
+
+#endif

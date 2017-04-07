@@ -3,7 +3,10 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    huffman.cpp
 
 HEADERS += \
-    hufman.h
+    hufman.h \
+    node.h \
+    pcode.h
