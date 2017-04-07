@@ -1,71 +1,13 @@
+#include "hufman.h"
 #include <deque>
 #include <iostream>
 #include <fstream>
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include <iomanip>
-#include <list>
 #include <vector>
-#include <map>
-
-using namespace std;
-
-class HUFF;
-class Bincode {
-public:
-    uint64_t bin= 0; // для последовательности 01
-    unsigned char len = 0; // длина вектора
-    Bincode()
-    {
-        bin = 0;
-        len = 0;
-    }
-};
-
-class Node {
-    unsigned char symvol; // символ
-    uint32_t num; // его колличество
-    Node *left, *right; // указатели на правого и левого сына
-public:
-    Node(unsigned char s, uint32_t n) {
-        left = NULL;
-        right = NULL;
-        symvol = s;
-        num = n;
-    }
-    Node(Node *l, Node *r) {
-        num = l->num + r->num;
-        left = l;
-        right = r;
-        symvol = 0;
-    }
-    uint32_t get()
-    {
-        return num;
-    }
-    friend HUFF;
-};
-
-class HUFF {
-private:
-    Node* root;
-    Bincode* N[256]; // массив из последовательностей 01 связанных с символом
-    uint32_t from_file[256]; // массив встречаемости символов из файла
-
-public:
-    HUFF() {
-        for (int i = 0; i < 256; i++)
-        {
-            from_file[i] = 0;
-        }
-    }
-    void readfile(ifstream &fin);     //прочтение файла
-    void bildtree();                  // построение дерева
-    void pack(ifstream & fin, ofstream & fout);//архиватор
-    Node* findmin(deque<Node*> &vec);          //поиск мимнимального
-    int BinSequence(Node *r, Bincode b);
-    void unpack(ifstream & fin, ofstream & fout);
-};
+#include <stdlib.h>
+#include <string.h>
 
 void HUFF::readfile(ifstream &fin)
 {
@@ -104,7 +46,7 @@ void HUFF::bildtree()
     {
         Node *k = new Node(findmin(forest), findmin(forest));
         forest.push_front(k);
-        if (forest.size() == 1) {break;} // если в списке остался один элемент, то это корень дерева
+        if (forest.size() == 1) {break;} // если в стеке остался один элемент, то это корень дерева
     }
     root = forest.front();
 }
@@ -130,6 +72,8 @@ int HUFF::BinSequence(Node *r, Bincode b)
         }
         if (r->left == 0 && r->right == 0)
         {
+// раз не добавили символ надо вычесть
+            --b.len;
             N[r->symvol] = new Bincode(b);
             break;
         }
@@ -149,8 +93,8 @@ void HUFF::pack(ifstream & fin, ofstream & fout) {
         uint32_t bufer;
         char bufByte[4];
     }un;
-    cout << "PACK";
-    for(unsigned short i = 0; i < 256 ; i++){ // in BIG ENDIAN
+    cout << "PACK" << endl;
+    for(unsigned short i = 0; i < 256 ; i++){
 
         un.bufer = htonl(from_file[i]);
         for(char j = 0; j < 4; ++j){
@@ -158,13 +102,10 @@ void HUFF::pack(ifstream & fin, ofstream & fout) {
         }
     }
 
-    union {
-        uint64_t buf=0;
-        char D[8];
-    };
+
     unsigned char c;
     int lenbuf=0;
-
+    uint64_t buf=0;
   while (1)
     {
         fin >> c;
@@ -173,19 +114,16 @@ void HUFF::pack(ifstream & fin, ofstream & fout) {
         lenbuf += (*N[c]).len;
         if (lenbuf > 63)
         {
-            for (int i = 0; i < 8; i++)
-            {
-                fout << D[i];
-            }
+            buf = htonll(buf);
+            fout.write((char*)&buf,8);
             lenbuf -= 64;
             buf = (*N[c]).bin << (((*N[c]).len - lenbuf));
         }
     }
-    //проверка на последнюю последовательность
-        for (int i = 0; i < (lenbuf / 8)+((lenbuf%8) ? 1: 0); i++)
-        {
-            fout << D[i];
-        }
+//проверка на последнюю последовательность
+        buf = htonll(buf);
+        int i = (lenbuf / 8) + ((lenbuf%8) ? 1: 0);
+        fout.write((char*)&buf,i);
 }
 
 void HUFF::unpack(ifstream & fin, ofstream & fout) //
@@ -237,7 +175,6 @@ void HUFF::unpack(ifstream & fin, ofstream & fout) //
             }
         }
     }
-
 }
 
 int main()
@@ -246,15 +183,18 @@ int main()
     int var;
 
     ifstream fin;
+    fin.unsetf (std::ios::skipws);
     ofstream f2;
 
     string name1;
     string name2;
 
     setlocale(LC_ALL, "Russian");
+    while(1){
     cout << "Меню" << endl;
     cout << "1: Упаковать" << endl;
     cout << "2: Распаковать" << endl;
+    cout << "3: Выход" << endl;
     cin >> var;
     switch (var)
     {
@@ -288,7 +228,14 @@ int main()
         f2.close();
         break;
     }
-    }
+    case 3:
+    {
+        return 0;
 
-    return 0;
+    }
+    default:
+         cout << "ERROR" <<endl;
+    }
+}
+
 }
